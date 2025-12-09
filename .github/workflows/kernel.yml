@@ -95,15 +95,21 @@ jobs:
           sudo apt-get install -y build-essential bc gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libssl-dev libfl-dev
           sudo apt-get install -y pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl 
           sudo apt-get install -y zip unzip tar gzip bzip2 rar unrar llvm g++-multilib bison gperf zlib1g-dev automake
-          sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu \
-                        gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi
+- name: Install dependencies
+  run: |
+    sudo apt-get update
+    sudo apt-get install -y \
+      gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu \
+      gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi \
+      curl git wget ccache python3 device-tree-compiler \
+      build-essential bc libssl-dev flex bison libncurses-dev
 
-      # Initialize ccache
-      - name: Set cross-compile vars
+- name: Set cross-compile vars
   run: |
     echo "ARCH=arm64" >> $GITHUB_ENV
     echo "CROSS_COMPILE=aarch64-linux-gnu-" >> $GITHUB_ENV
     echo "CROSS_COMPILE_ARM32=arm-linux-gnueabi-" >> $GITHUB_ENV
+      # Initialize ccache
       - name: 🚄 Setup ccache
         if: ${{ env.ENABLE_CCACHE == 'true' }}
         id: hash
