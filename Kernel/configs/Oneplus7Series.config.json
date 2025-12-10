@@ -9,11 +9,14 @@
     },
     "toolchains": [
       {
-        "repo": "https://gitlab.com/internetuser111/prebuilts_clang_host_linux-x86",
-        "branch": "fourteen",
-        "name": "clang",
-        "binaryEnv": [
-          "clang-r522817/bin"
+  "repo": "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86",
+  "branch": "refs/heads/main",
+  "name": "clang",
+  "binaryEnv": [
+    "clang-r547379/bin"
+  ],
+  "download_url": "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz"
+          }
         ]
       }
     ],
