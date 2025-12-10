@@ -16,7 +16,6 @@
     "clang-r547379/bin"
   ],
   "download_url": "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz"
-          }
         ]
       }
     ],
