@@ -190,25 +190,26 @@ jobs:
               echo "${{ env.WORKSPACE }}/$toolchain_name/$subPath" >> $GITHUB_PATH
             done
           done
-      - name: 🔧 Find Clang and add to PATH
+      - name: 🔧 Detect and add Android Clang to PATH
         run: |
           echo "Searching for clang and ld.lld under $GITHUB_WORKSPACE/clang ..."
           
           # 查找 clang 可执行文件
           CLANG_BIN=$(find $GITHUB_WORKSPACE/clang -type f -name clang -exec dirname {} \; | head -n1)
-          
-          # 查找 ld.lld 可执行文件（可选，确保 LLD 可用）
+          # 查找 ld.lld 可执行文件
           LLD_BIN=$(find $GITHUB_WORKSPACE/clang -type f -name ld.lld -exec dirname {} \; | head -n1)
           
+          # 检查是否找到
           if [ -z "$CLANG_BIN" ] || [ -z "$LLD_BIN" ]; then
-            echo "Error: clang or ld.lld not found!"
+            echo "Error: clang or ld.lld not found! Listing clang directory:"
+            find $GITHUB_WORKSPACE/clang
             exit 1
           fi
           
-          echo "Found Clang in: $CLANG_BIN"
-          echo "Found LLD in: $LLD_BIN"
+          echo "Found Clang bin: $CLANG_BIN"
+          echo "Found LLD bin: $LLD_BIN"
           
-          # 赋予可执行权限
+          # 赋可执行权限
           chmod -R +x "$CLANG_BIN"
           chmod -R +x "$LLD_BIN"
           
@@ -216,7 +217,7 @@ jobs:
           echo "$CLANG_BIN" >> $GITHUB_PATH
           echo "$LLD_BIN" >> $GITHUB_PATH
           
-          # 调试输出，确认 PATH 正确
+          # 调试输出，确认 PATH 生效
           echo "PATH=$PATH"
           which clang
           which ld.lld
