@@ -7,15 +7,17 @@
       "device": "Oneplus7Series",
       "defconfig": "gulch_defconfig"
     },
-   "toolchains": [
-      {
-        "repo": "https://github.com/KiTTYsh/android_prebuilts_clang_host_linux-x86_clang-r547379",
-        "branch": "main",
-        "name": "clang",
-        "binaryEnv": [
-          "clang-r547379/bin"
-        ]
-      }
+  "toolchains": [
+  {
+    "repo": "https://github.com/KiTTYsh/android_prebuilts_clang_host_linux-x86_clang-r547379",
+    "branch": "main",
+    "name": "clang",
+    "extract": false,
+    "binaryEnv": [
+      "clang-r547379/bin"
+    ]
+  }
+],
     "enableCcache": true,
     "params": {
       "ARCH": "arm64",
