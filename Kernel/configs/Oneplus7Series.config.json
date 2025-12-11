@@ -7,14 +7,13 @@
       "device": "Oneplus7Series",
       "defconfig": "gulch_defconfig"
     },
-  "toolchains": [
-  {
-    "repo": "https://github.com/rankalpha/crdroid_android_prebuilts_clang_host_linux-x86_clang-r536225",
-    "branch": "15.0",
-    "name": "clang",
-    "extract": false,
-    "binaryEnv": [
-      "clang-r536225/bin"
+ "toolchains": [
+      {
+        "repo": "https://gitlab.com/internetuser111/prebuilts_clang_host_linux-x86",
+        "branch": "fourteen",
+        "name": "clang",
+        "binaryEnv": [
+          "clang-r522817/bin"
     ]
   }
 ]，
