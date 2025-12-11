@@ -24,30 +24,8 @@ jobs:
       - name: 😆 Generate Matrix
         id: generate-matrix
         run: |
-          CONFIGS="[]"
-
-          for f in Kernel/configs/*.config.json; do
-            if [ ! -f "$f" ]; then
-              echo "⚠️ File $f not found, skipping"
-              continue
-            fi
-
-            if jq empty "$f" 2>/dev/null; then
-              FILE_CONTENT=$(jq '.' "$f")
-              CONFIGS=$(echo "$CONFIGS" | jq ". + [$FILE_CONTENT]")
-            else
-              echo "⚠️ Invalid JSON, skipping $f"
-            fi
-          done
-
-          # 如果 CONFIGS 仍为空，给一个默认值，避免 matrix 报错
-          if [ "$(echo $CONFIGS | jq 'length')" -eq 0 ]; then
-            echo "⚠️ No valid config found, adding dummy config"
-            CONFIGS='[{"kernelSource":{"name":"dummy","repo":"","branch":"","device":"","defconfig":""},"enableCcache":false,"AnyKernel3":{"use":false,"release":false},"enableKernelSU":false,"enableLXC":false,"toolchains":[],"params":{"ARCH":"arm64","CC":"clang"}}]'
-          fi
-
           echo "CONFIGS<<EOF" >> $GITHUB_OUTPUT
-          echo "$CONFIGS" >> $GITHUB_OUTPUT
+          jq -s '[.[][]]' Kernel/configs/*.config.json >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       # Set compile time.
@@ -59,8 +37,7 @@ jobs:
     name: "🐎 Build kernel"
     runs-on: ubuntu-latest
     needs:
-       - Read-configuration
-    if: ${{ fromJSON(needs.Read-configuration.outputs.CONFIGS) != '[]' }}
+      - Read-configuration
     strategy:
       max-parallel: 4
       fail-fast: false
@@ -111,10 +88,9 @@ jobs:
       - name: ⭐ Install prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl git ftp lftp wget libarchive-tools ccache python3-dev python3
+          sudo apt-get install -y curl git ftp lftp wget libarchive-tools ccache python2 python2-dev python3
           sudo apt-get install -y pngcrush schedtool dpkg-dev liblz4-tool make optipng maven device-tree-compiler 
-          sudo apt-get install -y libc6-dev-i386 lib32ncurses6 libx11-dev lib32z1 libgl1-mesa-dev xsltproc libncurses5-dev 
-          sudo apt-get install -y libncurses-dev lld
+          sudo apt-get install -y libc6-dev-i386 lib32ncurses5-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc
           sudo apt-get install -y libxml2-utils libbz2-dev libbz2-1.0 libghc-bzlib-dev squashfs-tools lzop flex tree
           sudo apt-get install -y build-essential bc gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libssl-dev libfl-dev
           sudo apt-get install -y pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl 
@@ -139,7 +115,7 @@ jobs:
         env:
           HASH: ${{ steps.hash.outputs.HASH }}
         if: ${{ env.ENABLE_CCACHE == 'true' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v3
         with:
           path: |
             ${{ env.OUT_DIR }}
@@ -225,7 +201,7 @@ jobs:
           ARCH=$(echo $PARAMS | jq -r ".ARCH")
           CC=$(echo $PARAMS | jq -r ".CC")
 
-          args="-j${{ env.THREAD }} O=${{ env.OUT_DIR }} ARCH=$ARCH" CC=${{ github.workspace }}/clang/clang-r536225/bin/clang LD=ld
+          args="-j${{ env.THREAD }} O=${{ env.OUT_DIR }} ARCH=$ARCH"
           if [ -n "$CC" ]; then
 
             if [[ "$CC" == *"/"* ]]; then
@@ -238,7 +214,6 @@ jobs:
               args="$args CC=$CC"
             fi
           fi
-         
           while read -r externalCommand; do
             key=$(echo "$externalCommand" | cut -d= -f1)
             value=$(echo "$externalCommand" | cut -d= -f2)
@@ -345,7 +320,6 @@ jobs:
           echo "🤔 PATH Variable: $PATH"
           export KBUILD_BUILD_HOST=dammer
           export KBUILD_BUILD_USER=dammer
-         
           make ${{ env.ARGS }} ${{ env.KERNEL_DEFCONFIG_PATH }}
           make ${{ env.ARGS }}
           # tree ${{ env.OUT_DIR }}
@@ -383,7 +357,7 @@ jobs:
       - name: 💜 Upload dtb
         uses: actions/upload-artifact@v4
         env:
-          ARCH: ${{ steps.generate-args.outputs.ARCH }}
+         ARCH: ${{ steps.generate-args.outputs.ARCH }}
         with:
           name: ${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}-dtb
           path: ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtb
@@ -454,7 +428,7 @@ jobs:
       - name: "💾 Upload AnyKernel3 image => (${{ env.BUILD_DATE }})"
         env:
           ANYKERNEL3_FILE: "AnyKernel3-${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         if: ${{ env.USE_ANYKERNEL3 == 'true' }}
         with:
           name: "${{ env.ANYKERNEL3_FILE }}"
