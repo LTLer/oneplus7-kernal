@@ -190,7 +190,24 @@ jobs:
               echo "${{ env.WORKSPACE }}/$toolchain_name/$subPath" >> $GITHUB_PATH
             done
           done
-
+      - name: 🔧 Fix Clang PATH and permissions
+        run: |
+          # 假设 toolchain_name=clang-r547379
+          CLANG_BIN="$GITHUB_WORKSPACE/clang-r547379/android-16.0.0_r1/bin"
+          
+          # 赋予可执行权限
+          chmod -R +x "$CLANG_BIN"
+          
+          # 添加到 PATH
+          echo "$CLANG_BIN" >> $GITHUB_PATH
+          
+          # 调试输出，确认 clang 和 ld.lld 可用
+          echo "PATH=$PATH"
+          which clang
+          which ld.lld
+          clang --version
+          ld.lld --version
+    
       - name: 😎 Set build args
         id: generate-args
         env:
