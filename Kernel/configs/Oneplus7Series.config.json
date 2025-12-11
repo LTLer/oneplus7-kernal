@@ -6,8 +6,8 @@
       "branch": "sixteen",
       "device": "Oneplus7Series",
       "defconfig": "gulch_defconfig"
-    },
-     "toolchains": [
+     },
+    "toolchains": [
       {
         "repo": "https://github.com/JeyKul/clang-r547379/releases/download/clang/linux-x86-refs_heads_main-clang-r547379.tar.gz",
         "name": "clang",
@@ -16,7 +16,7 @@
           "clang-r547379/bin"
         ]
       }
-     ]，
+    ]，
     "enableCcache": true,
     "params": {
       "ARCH": "arm64",
