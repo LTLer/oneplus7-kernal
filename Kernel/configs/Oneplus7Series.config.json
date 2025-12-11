@@ -9,8 +9,8 @@
     },
     "toolchains": [
       {
-        "repo": "https://github.com/anhdat1024/platform_prebuilts_clang_host_linux-x86_r547379",
-        "branch": "android-16.0.0_r1",
+        "repo": "https://github.com/KiTTYsh/android_prebuilts_clang_host_linux-x86_clang-r547379",
+        "branch": "main",
         "name": "clang",
         "binaryEnv": [
           "clang-r547379/bin"
