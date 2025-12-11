@@ -8,15 +8,14 @@
       "defconfig": "gulch_defconfig"
     },
    "toolchains": [
-  {
-    "name": "clang",
-    "url": "https://github.com/JeyKul/clang-r547379/releases/download/clang/linux-x86-refs_heads_main-clang-r547379.tar.gz",
-    "extract": true,
-    "binaryEnv": [
-      "clang-r547379/bin"
-    ]
-  }
-],
+      {
+        "repo": "https://github.com/KiTTYsh/android_prebuilts_clang_host_linux-x86_clang-r547379",
+        "branch": "main",
+        "name": "clang",
+        "binaryEnv": [
+          "clang-r547379/bin"
+        ]
+      }
     "enableCcache": true,
     "params": {
       "ARCH": "arm64",
