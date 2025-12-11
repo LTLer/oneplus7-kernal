@@ -191,22 +191,22 @@ jobs:
             done
           done
       - name: 🔧 Fix Clang PATH and permissions
-  run: |
-    # 遍历所有下载的 toolchains
-    for dir in $GITHUB_WORKSPACE/*; do
-      if [ -d "$dir" ] && [ -d "$dir/bin" ]; then
-        echo "Found bin: $dir/bin"
-        chmod -R +x "$dir/bin"
-        echo "$dir/bin" >> $GITHUB_PATH
-      fi
-    done
+        run: |
+          # 遍历所有下载的 toolchains
+          for dir in $GITHUB_WORKSPACE/*; do
+            if [ -d "$dir" ] && [ -d "$dir/bin" ]; then
+              echo "Found bin: $dir/bin"
+              chmod -R +x "$dir/bin"
+              echo "$dir/bin" >> $GITHUB_PATH
+            fi
+          done
 
-    # 调试输出
-    echo "PATH=$PATH"
-    which clang
-    which ld.lld
-    clang --version || true
-    ld.lld --version || true
+          # 调试输出
+          echo "PATH=$PATH"
+          which clang
+          which ld.lld
+          clang --version || true
+          ld.lld --version || true
     
       - name: 😎 Set build args
         id: generate-args
