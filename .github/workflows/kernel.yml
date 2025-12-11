@@ -228,7 +228,14 @@ jobs:
           echo "ARGS=$args" >> $GITHUB_OUTPUT
 
           echo "🤔 $args"
-
+          
+      - name: Check ld.lld
+         run: |
+           ls -l $GITHUB_WORKSPACE/clang/clang-r547379/bin
+           file $GITHUB_WORKSPACE/clang/clang-r547379/bin/ld.lld
+      - name: Debug PATH
+         run: which ld.lld || echo "ld.lld not in PATH"
+     
       - name: 😋 Setup KernelSU
         working-directory: ${{ env.KERNEL_NAME }}
         env:
