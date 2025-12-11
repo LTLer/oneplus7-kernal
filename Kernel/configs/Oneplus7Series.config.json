@@ -3,17 +3,17 @@
     "kernelSource": {
       "name": "Op7Series_KSU_Nethunter",
       "repo": "https://github.com/yaap/kernel_oneplus_sm8150",
-      "branch": "fourteen",
+      "branch": "sixteen",
       "device": "Oneplus7Series",
       "defconfig": "gulch_defconfig"
     },
     "toolchains": [
       {
-        "repo": "https://gitlab.com/internetuser111/prebuilts_clang_host_linux-x86",
-        "branch": "fourteen",
+        "repo": "https://github.com/KiTTYsh/android_prebuilts_clang_host_linux-x86_clang-r547379",
+        "branch": "main",
         "name": "clang",
         "binaryEnv": [
-          "clang-r522817/bin"
+          "clang-r547379/bin"
         ]
       }
     ],
