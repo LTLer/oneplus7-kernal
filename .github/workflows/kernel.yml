@@ -192,17 +192,16 @@ jobs:
           done
       - name: 🔧 Fix Clang PATH and permissions
         run: |
-          # 遍历下载的 toolchains
+          # 遍历 clang 下的子目录，找到包含 clang 和 ld.lld 的 bin
           for dir in $GITHUB_WORKSPACE/clang/*; do
-            if [ -d "$dir/bin" ]; then
-              echo "Found bin: $dir/bin"
+            if [ -d "$dir/bin" ] && [ -f "$dir/bin/clang" ] && [ -f "$dir/bin/ld.lld" ]; then
+              echo "Found Clang bin: $dir/bin"
               chmod -R +x "$dir/bin"
-              # 将真正的 bin 添加到 PATH
               echo "$dir/bin" >> $GITHUB_PATH
             fi
           done
 
-          # 调试输出
+          # 调试输出，确认 clang 和 ld.lld 在 PATH 中
           echo "PATH=$PATH"
           which clang
           which ld.lld
