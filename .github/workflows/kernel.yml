@@ -190,23 +190,38 @@ jobs:
               echo "${{ env.WORKSPACE }}/$toolchain_name/$subPath" >> $GITHUB_PATH
             done
           done
-      - name: 🔧 Fix Clang PATH and permissions
+      - name: 🔧 Find Clang and add to PATH
         run: |
-          # 遍历 clang 下的子目录，找到包含 clang 和 ld.lld 的 bin
-          for dir in $GITHUB_WORKSPACE/clang/*; do
-            if [ -d "$dir/bin" ] && [ -f "$dir/bin/clang" ] && [ -f "$dir/bin/ld.lld" ]; then
-              echo "Found Clang bin: $dir/bin"
-              chmod -R +x "$dir/bin"
-              echo "$dir/bin" >> $GITHUB_PATH
-            fi
-          done
-
-          # 调试输出，确认 clang 和 ld.lld 在 PATH 中
+          echo "Searching for clang and ld.lld under $GITHUB_WORKSPACE/clang ..."
+          
+          # 查找 clang 可执行文件
+          CLANG_BIN=$(find $GITHUB_WORKSPACE/clang -type f -name clang -exec dirname {} \; | head -n1)
+          
+          # 查找 ld.lld 可执行文件（可选，确保 LLD 可用）
+          LLD_BIN=$(find $GITHUB_WORKSPACE/clang -type f -name ld.lld -exec dirname {} \; | head -n1)
+          
+          if [ -z "$CLANG_BIN" ] || [ -z "$LLD_BIN" ]; then
+            echo "Error: clang or ld.lld not found!"
+            exit 1
+          fi
+          
+          echo "Found Clang in: $CLANG_BIN"
+          echo "Found LLD in: $LLD_BIN"
+          
+          # 赋予可执行权限
+          chmod -R +x "$CLANG_BIN"
+          chmod -R +x "$LLD_BIN"
+          
+          # 添加到 PATH
+          echo "$CLANG_BIN" >> $GITHUB_PATH
+          echo "$LLD_BIN" >> $GITHUB_PATH
+          
+          # 调试输出，确认 PATH 正确
           echo "PATH=$PATH"
           which clang
           which ld.lld
-          clang --version || true
-          ld.lld --version || true
+          clang --version
+          ld.lld --version
     
       - name: 😎 Set build args
         id: generate-args
