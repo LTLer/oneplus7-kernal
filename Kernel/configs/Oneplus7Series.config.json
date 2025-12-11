@@ -10,7 +10,7 @@
  "toolchains": [
   {
     "name": "clang",
-    "url": "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz",
+    "url": "https://github.com/anhdat1024/platform_prebuilts_clang_host_linux-x86_r547379",
     "extract": true,
     "binaryEnv": [
       "clang-r547379/bin"
