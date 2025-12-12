@@ -5,7 +5,7 @@
       "repo": "https://github.com/LineageOS/android_kernel_oneplus_sm8150",
       "branch": "lineage-23.0",
       "device": "Oneplus7Series",
-      "defconfig": "sm8150_defconfig"
+      "defconfig": "vendor/sm8150_defconfig"
     },
     "toolchains": [
   {
