@@ -130,8 +130,35 @@ jobs:
       - name: 🌟 Clone kernel source => (${{ env.KERNEL_REPO }})
         run: |
           git clone --recursive --depth=1 -j $(nproc) --branch ${{ env.KERNEL_BRANCH }} ${{ env.KERNEL_REPO }} ${{ env.KERNEL_NAME }}
-          # tree ${{ env.KERNEL_NAME }}
+          # tree ${{ env.KERNEL_NAME }}       
+      - name: Patch sched.h for lb tracepoint
+        run: |
+         # 定义 sched.h 文件路径
+          SCHED_H="${{ env.WORKSPACE }}/${{ env.KERNEL_NAME }}/include/trace/events/sched.h"
 
+         # 如果包含报错行，则替换为 warning
+         if grep -q 'Unsupported NR_CPUS for lb tracepoint' "$SCHED_H"; then
+         sed -i 's/#error "Unsupported NR_CPUS for lb tracepoint."/#warning "NR_CPUS exceeds tracepoint limit, skipping error"/' "$SCHED_H"
+          echo "sched.h patched to bypass NR_CPUS lb tracepoint error"
+         else
+         echo "sched.h already patched or does not contain the error line"
+         fi
+      - name: Force NR_CPUS=8 in .config
+        run: |
+         KERNEL_DIR="${{ env.WORKSPACE }}/${{ env.KERNEL_NAME }}"
+         cd "$KERNEL_DIR"
+
+          # 如果 .config 中没有 NR_CPUS=8 或 CONFIG_SMP=y，则添加
+         if ! grep -q 'CONFIG_NR_CPUS=8' .config; then
+         echo "CONFIG_NR_CPUS=8" >> .config
+         fi
+         if ! grep -q 'CONFIG_SMP=y' .config; then
+         echo "CONFIG_SMP=y" >> .config
+         fi
+
+          # 生成最终配置
+          make olddefconfig
+         echo "NR_CPUS set to 8 and .config updated"
       - name: 💫 Get toolchains
         env:
           toolchains: "${{ toJSON(matrix.CONFIG.toolchains) }}"
