@@ -144,17 +144,17 @@ jobs:
           cd "$KERNEL_DIR"
 
           echo "=== Running make mrproper ==="
-          make mrproper
+          make ARCH=arm64 mrproper
 
           echo "=== Generating default defconfig (${{ env.KERNEL_DEFCONFIG_PATH }}) ==="
-          make ${{ env.KERNEL_DEFCONFIG_PATH }}
+          make ARCH=arm64 O=${{ env.OUT_DIR }} ${{ env.KERNEL_DEFCONFIG_PATH }}
 
           echo "=== Modify NR_CPUS ==="
-          sed -i 's/CONFIG_NR_CPUS=.*/CONFIG_NR_CPUS=8/' .config || echo "CONFIG_NR_CPUS=8" >> .config
-          sed -i 's/# CONFIG_SMP is not set/CONFIG_SMP=y/' .config || true
+          sed -i 's/CONFIG_NR_CPUS=.*/CONFIG_NR_CPUS=8/' ${{ env.OUT_DIR }}/.config || echo "CONFIG_NR_CPUS=8" >> ${{ env.OUT_DIR }}/.config
+          sed -i 's/# CONFIG_SMP is not set/CONFIG_SMP=y/' ${{ env.OUT_DIR }}/.config || true
 
           echo "=== Applying olddefconfig ==="
-          make olddefconfig
+          make ARCH=arm64 O=${{ env.OUT_DIR }} olddefconfig
       - name: 💫 Get toolchains
         env:
           toolchains: "${{ toJSON(matrix.CONFIG.toolchains) }}"
