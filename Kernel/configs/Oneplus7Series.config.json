@@ -16,7 +16,7 @@
       "clang-r547379/bin"
     ]
   }
-    ]
+    ]，
     "enableCcache": true,
     "params": {
       "ARCH": "arm64",
