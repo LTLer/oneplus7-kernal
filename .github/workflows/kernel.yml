@@ -143,26 +143,34 @@ jobs:
           KERNEL_DIR="${{ env.WORKSPACE }}/${{ env.KERNEL_NAME }}"
           cd "$KERNEL_DIR"
 
-          echo "=== Debug: before mrproper ==="
+          echo "=== Running make mrproper to ensure clean source ==="
+          make mrproper
+
+          echo "=== Debug: after mrproper ==="
           find . -type f -name "*.o" -o -name "*.tmp" -o -name "*~" -o -name ".config" | tee /tmp/dirty_files.txt
-          echo "Found dirty files in source:"
+          echo "Leftover files after mrproper (should be none):"
           cat /tmp/dirty_files.txt || echo "No dirty files found"
+
       - name: Force NR_CPUS=8 in .config
         run: |
-         KERNEL_DIR="${{ env.WORKSPACE }}/${{ env.KERNEL_NAME }}"
-         cd "$KERNEL_DIR"
+          KERNEL_DIR="${{ env.WORKSPACE }}/${{ env.KERNEL_NAME }}"
+          cd "$KERNEL_DIR"
 
-          # 如果 .config 中没有 NR_CPUS=8 或 CONFIG_SMP=y，则添加
-         if ! grep -q 'CONFIG_NR_CPUS=8' .config; then
-         echo "CONFIG_NR_CPUS=8" >> .config
-         fi
-         if ! grep -q 'CONFIG_SMP=y' .config; then
-         echo "CONFIG_SMP=y" >> .config
-         fi
+          # 确保基础配置文件存在
+          make ${DEFCONFIG}
 
-          # 生成最终配置
+          # 修改 CPU 数量
+          if ! grep -q 'CONFIG_NR_CPUS=8' .config; then
+            echo "CONFIG_NR_CPUS=8" >> .config
+          fi
+          if ! grep -q 'CONFIG_SMP=y' .config; then
+            echo "CONFIG_SMP=y" >> .config
+          fi
+
+          # 重新应用配置
           make olddefconfig
-         echo "NR_CPUS set to 8 and .config updated"
+
+          echo "NR_CPUS set to 8 and .config updated"
       - name: 💫 Get toolchains
         env:
           toolchains: "${{ toJSON(matrix.CONFIG.toolchains) }}"
