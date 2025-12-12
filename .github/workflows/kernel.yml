@@ -137,10 +137,6 @@ jobs:
         run: |
           git clone --recursive --depth=1 -j $(nproc) --branch ${{ env.KERNEL_BRANCH }} ${{ env.KERNEL_REPO }} ${{ env.KERNEL_NAME }}
           # tree ${{ env.KERNEL_NAME }}   
-      - name: 🌟 Clone kernel source => (${{ env.KERNEL_REPO }})
-        run: |
-          git lfs install
-          git clone --recursive --depth=1 -j $(nproc) --branch ${{ env.KERNEL_BRANCH }} ${{ env.KERNEL_REPO }} ${{ env.KERNEL_NAME }}
 
       - name: 🧹 Clean kernel source
         run: |
