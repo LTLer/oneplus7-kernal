@@ -131,7 +131,8 @@ jobs:
         run: |
           git clone --recursive --depth=1 -j $(nproc) --branch ${{ env.KERNEL_BRANCH }} ${{ env.KERNEL_REPO }} ${{ env.KERNEL_NAME }}
           # tree ${{ env.KERNEL_NAME }}
-      - name: 💫 Get toolchains and fix PATH
+
+      - name: 💫 Get toolchains
         env:
           toolchains: "${{ toJSON(matrix.CONFIG.toolchains) }}"
         run: |
@@ -141,66 +142,55 @@ jobs:
 
           for ((i=0;i<toolchains_num;i++)); do
             toolchain=$(echo $toolchains | jq -r ".[$i]")
-            toolchain_name=$(echo $toolchain | jq -r ".name")
 
-            # 下载 archive
+            toolchain_name=$(echo $toolchain | jq -r ".name")
+            
+            # From archive
             if echo $toolchain | jq -e 'has("url")' > /dev/null; then
+              # If from archive
               toolchain_url=$(echo $toolchain | jq -r ".url")
               mkdir -p $toolchain_name
+
+              # Download archive
               wget "$toolchain_url"
+
+              # Get filename
               filename="${toolchain_url##*/}"
               case "$filename" in
-                *.zip) unzip -d $toolchain_name "$filename" ;;
-                *.tar) tar xvf "$filename" -C $toolchain_name ;;
-                *.tar.gz) tar zxvf "$filename" -C $toolchain_name ;;
-                *.rar) unrar x "$filename" $toolchain_name ;;
-                *) echo "unknown file type: $filename" ;;
+                *.zip)
+                  unzip -d $toolchain_name "$filename"
+                  ;;
+                *.tar)
+                  tar xvf "$filename" -C $toolchain_name
+                  ;;
+                *.tar.gz)
+                  tar zxvf "$filename" -C $toolchain_name
+                  ;;
+                *.rar)
+                  unrar x "$filename" $toolchain_name
+                  ;;
+                *)
+                  echo "unknown file type: $filename"
+                  ;;
               esac
+              # Delete file to avoid duplicate name conflicts 
               rm $filename
+
               echo "🤔 Download $toolchain_name => ($toolchain_url)"
             else
-              # clone git
+              # If from git
               toolchain_repo=$(echo $toolchain | jq -r ".repo")
               toolchain_branch=$(echo $toolchain | jq -r ".branch")
               git clone --recursive --depth=1 -j $(nproc) --branch $toolchain_branch $toolchain_repo $toolchain_name
+
               echo "🤔 Clone $toolchain_name => ($toolchain_repo)"
             fi
 
-            # 尝试用 binaryEnv 加 PATH（保留旧逻辑）
             jq -r ".binaryEnv[] | tostring" <<< "$toolchain" | while read -r subPath; do
               echo "${{ env.WORKSPACE }}/$toolchain_name/$subPath" >> $GITHUB_PATH
             done
           done
 
-          # 🔧 自动查找 clang 和 ld.lld 并加入 PATH
-          echo "🔍 Searching for actual clang and ld.lld under $GITHUB_WORKSPACE/clang ..."
-          CLANG_BIN=$(find $GITHUB_WORKSPACE/clang -type f -name clang -exec dirname {} \; | head -n1)
-          LLD_BIN=$(find $GITHUB_WORKSPACE/clang -type f -name ld.lld -exec dirname {} \; | head -n1)
-
-          if [ -z "$CLANG_BIN" ] || [ -z "$LLD_BIN" ]; then
-            echo "Error: clang or ld.lld not found! Listing clang directory:"
-            find $GITHUB_WORKSPACE/clang
-            exit 1
-          fi
-
-          echo "Found Clang bin: $CLANG_BIN"
-          echo "Found LLD bin: $LLD_BIN"
-
-          # 授权可执行
-          chmod -R +x "$CLANG_BIN"
-          chmod -R +x "$LLD_BIN"
-
-          # 添加到 PATH
-          echo "$CLANG_BIN" >> $GITHUB_PATH
-          echo "$LLD_BIN" >> $GITHUB_PATH
-
-          # 调试输出
-          echo "PATH=$PATH"
-          which clang
-          which ld.lld
-          clang --version
-          ld.lld --version
-    
       - name: 😎 Set build args
         id: generate-args
         env:
@@ -238,14 +228,7 @@ jobs:
           echo "ARGS=$args" >> $GITHUB_OUTPUT
 
           echo "🤔 $args"
-          
-      - name: Check ld.lld
-        run: |
-           ls -l $GITHUB_WORKSPACE/clang/clang-r547379/bin
-           file $GITHUB_WORKSPACE/clang/clang-r547379/bin/ld.lld
-      - name: Debug PATH
-        run: which ld.lld || echo "ld.lld not in PATH"
-     
+
       - name: 😋 Setup KernelSU
         working-directory: ${{ env.KERNEL_NAME }}
         env:
