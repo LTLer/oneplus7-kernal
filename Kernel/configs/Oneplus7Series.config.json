@@ -47,7 +47,7 @@
           "branch": "op7-nh"
         }
       },
-      "enableKernelSU": true,
+      "enableKernelSU": false,
       "enableLXC": true
     }
 ]
