@@ -126,7 +126,13 @@ jobs:
             cache-${{ env.KERNEL_NAME }}-${{env.HASH}}-${{ env.BUILD_DATE }}
             cache-${{ env.KERNEL_NAME }}-${{env.HASH}}-
             cache-${{ env.KERNEL_NAME }}-
-
+      - name: 🧹 Clean old kernel directory
+        run: |
+         KERNEL_DIR="${{ env.WORKSPACE }}/${{ env.KERNEL_NAME }}"
+         if [ -d "$KERNEL_DIR" ]; then
+          echo "Removing existing kernel directory: $KERNEL_DIR"
+          rm -rf "$KERNEL_DIR"
+         fi
       - name: 🌟 Clone kernel source => (${{ env.KERNEL_REPO }})
         run: |
           git clone --recursive --depth=1 -j $(nproc) --branch ${{ env.KERNEL_BRANCH }} ${{ env.KERNEL_REPO }} ${{ env.KERNEL_NAME }}
