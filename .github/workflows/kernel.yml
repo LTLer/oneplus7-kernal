@@ -138,39 +138,23 @@ jobs:
           git clone --recursive --depth=1 -j $(nproc) --branch ${{ env.KERNEL_BRANCH }} ${{ env.KERNEL_REPO }} ${{ env.KERNEL_NAME }}
           # tree ${{ env.KERNEL_NAME }}   
 
-      - name: 🧹 Clean kernel source
+      - name: 🧹 Clean & init kernel config
         run: |
           KERNEL_DIR="${{ env.WORKSPACE }}/${{ env.KERNEL_NAME }}"
           cd "$KERNEL_DIR"
 
-          echo "=== Running make mrproper to ensure clean source ==="
+          echo "=== Running make mrproper ==="
           make mrproper
 
-          echo "=== Debug: after mrproper ==="
-          find . -type f -name "*.o" -o -name "*.tmp" -o -name "*~" -o -name ".config" | tee /tmp/dirty_files.txt
-          echo "Leftover files after mrproper (should be none):"
-          cat /tmp/dirty_files.txt || echo "No dirty files found"
+          echo "=== Generating default defconfig (${{ env.KERNEL_DEFCONFIG_PATH }}) ==="
+          make ${{ env.KERNEL_DEFCONFIG_PATH }}
 
-      - name: Force NR_CPUS=8 in .config
-        run: |
-          KERNEL_DIR="${{ env.WORKSPACE }}/${{ env.KERNEL_NAME }}"
-          cd "$KERNEL_DIR"
+          echo "=== Modify NR_CPUS ==="
+          sed -i 's/CONFIG_NR_CPUS=.*/CONFIG_NR_CPUS=8/' .config || echo "CONFIG_NR_CPUS=8" >> .config
+          sed -i 's/# CONFIG_SMP is not set/CONFIG_SMP=y/' .config || true
 
-          # 确保基础配置文件存在
-          make ${DEFCONFIG}
-
-          # 修改 CPU 数量
-          if ! grep -q 'CONFIG_NR_CPUS=8' .config; then
-            echo "CONFIG_NR_CPUS=8" >> .config
-          fi
-          if ! grep -q 'CONFIG_SMP=y' .config; then
-            echo "CONFIG_SMP=y" >> .config
-          fi
-
-          # 重新应用配置
+          echo "=== Applying olddefconfig ==="
           make olddefconfig
-
-          echo "NR_CPUS set to 8 and .config updated"
       - name: 💫 Get toolchains
         env:
           toolchains: "${{ toJSON(matrix.CONFIG.toolchains) }}"
