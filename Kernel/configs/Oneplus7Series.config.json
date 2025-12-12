@@ -5,18 +5,18 @@
       "repo": "https://github.com/LineageOS/android_kernel_oneplus_sm8150",
       "branch": "lineage-23.0",
       "device": "Oneplus7Series",
-      "defconfig": "vendor/sm8150_defconfig"
+      "defconfig": "sm8150_defconfig"
     },
     "toolchains": [
-  {
-    "name": "clang",
-    "url": "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz",
-    "extract": true,
-    "binaryEnv": [
-      "clang-r547379/bin"
-    ]
-  }
-    ]，
+      {
+        "name": "clang",
+        "url": "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz",
+        "extract": true,
+        "binaryEnv": [
+          "clang-r547379/bin"
+        ]
+      }
+    ],
     "enableCcache": true,
     "params": {
       "ARCH": "arm64",
@@ -40,15 +40,14 @@
       }
     },
     "AnyKernel3": {
-        "use": true,
-        "release": true,
-        "custom": {
-          "repo": "https://github.com/internetuser111/AnyKernel3",
-          "branch": "op7-nh"
-        }
-      },
-      "enableKernelSU": false,
-      "enableLXC": true
-    }
+      "use": true,
+      "release": true,
+      "custom": {
+        "repo": "https://github.com/internetuser111/AnyKernel3",
+        "branch": "op7-nh"
+      }
+    },
+    "enableKernelSU": false,
+    "enableLXC": true
+  }
 ]
-
