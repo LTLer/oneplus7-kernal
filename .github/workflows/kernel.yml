@@ -443,5 +443,5 @@ jobs:
         if: ${{ env.USE_ANYKERNEL3 == 'true' && env.CONFIRM_RELEASE == 'true' }}
         with:
           tag_name: v${{ env.BUILD_DATE }}.${{ github.run_number }}
-          文件: "${{ env.ANYKERNEL3_FILE }}.zip"
+          files: "${{ env.ANYKERNEL3_FILE }}.zip"
           generate_release_notes: true
