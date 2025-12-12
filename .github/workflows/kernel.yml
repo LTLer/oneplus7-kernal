@@ -134,7 +134,7 @@ jobs:
       - name: Clean kernel source
         run: |
          cd "${{ env.WORKSPACE }}/${{ env.KERNEL_NAME }}"
-           make mrproper
+         make O="${{ env.OUT_DIR }}" mrproper
       - name: Force NR_CPUS=8 in .config
         run: |
          KERNEL_DIR="${{ env.WORKSPACE }}/${{ env.KERNEL_NAME }}"
