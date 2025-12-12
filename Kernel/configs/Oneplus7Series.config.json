@@ -7,7 +7,7 @@
       "device": "Oneplus7Series",
       "defconfig": "sm8150_defconfig"
     },
-    "   "toolchains": [
+    "toolchains": [
       {
         "repo": "https://gitlab.com/alphadroid-project/prebuilts_clang_host_linux-x86_clang-r547379",
         "branch": "alpha-15.2",
