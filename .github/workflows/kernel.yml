@@ -131,10 +131,20 @@ jobs:
         run: |
           git clone --recursive --depth=1 -j $(nproc) --branch ${{ env.KERNEL_BRANCH }} ${{ env.KERNEL_REPO }} ${{ env.KERNEL_NAME }}
           # tree ${{ env.KERNEL_NAME }}   
-      - name: Clean kernel source
+      - name: 🌟 Clone kernel source => (${{ env.KERNEL_REPO }})
         run: |
-         cd "${{ env.WORKSPACE }}/${{ env.KERNEL_NAME }}"
-         make O="${{ env.OUT_DIR }}" mrproper
+          git lfs install
+          git clone --recursive --depth=1 -j $(nproc) --branch ${{ env.KERNEL_BRANCH }} ${{ env.KERNEL_REPO }} ${{ env.KERNEL_NAME }}
+
+      - name: 🧹 Clean kernel source
+        run: |
+          KERNEL_DIR="${{ env.WORKSPACE }}/${{ env.KERNEL_NAME }}"
+          cd "$KERNEL_DIR"
+
+          echo "=== Debug: before mrproper ==="
+          find . -type f -name "*.o" -o -name "*.tmp" -o -name "*~" -o -name ".config" | tee /tmp/dirty_files.txt
+          echo "Found dirty files in source:"
+          cat /tmp/dirty_files.txt || echo "No dirty files found"
       - name: Force NR_CPUS=8 in .config
         run: |
          KERNEL_DIR="${{ env.WORKSPACE }}/${{ env.KERNEL_NAME }}"
