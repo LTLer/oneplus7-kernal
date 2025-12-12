@@ -8,15 +8,15 @@
       "defconfig": "vendor/sm8150_defconfig"
     },
     "toolchains": [
-      {
-        "repo": "https://github.com/KiTTYsh/android_prebuilts_clang_host_linux-x86_clang-r547379",
-        "branch": "main",
-        "name": "clang",
-        "binaryEnv": [
-          "clang-r547379/bin"
-        ]
-      }
-    ],
+  {
+    "name": "clang",
+    "url": "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz",
+    "extract": true,
+    "binaryEnv": [
+      "clang-r547379/bin"
+    ]
+  }
+    ]
     "enableCcache": true,
     "params": {
       "ARCH": "arm64",
