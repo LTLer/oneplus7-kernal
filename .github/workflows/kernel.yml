@@ -33,8 +33,7 @@ jobs:
   Build-Kernel:
     name: "🐎 Build kernel"
     runs-on: ubuntu-latest
-    needs:
-      - Read-configuration
+    needs: Read-configuration
     strategy:
       max-parallel: 4
       fail-fast: false
@@ -56,7 +55,7 @@ jobs:
             curl git wget unzip zip tar rar unrar python3 python3-dev build-essential bc \
             clang llvm lld make gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
             ccache libssl-dev libncurses-dev device-tree-compiler pngcrush schedtool \
-            dpkg-dev liblz4-tool optipng maven lib32z1 libgl1-mesa-dev  \
+            dpkg-dev liblz4-tool optipng maven lib32z1 libgl1-mesa-dev \
             bison gperf zlib1g-dev automake flex tree libxml2-utils squashfs-tools lzop \
             pwgen libc6-dev-i386
 
@@ -68,7 +67,6 @@ jobs:
       - name: 💫 Get toolchains
         env:
           toolchains: "${{ toJSON(matrix.CONFIG.toolchains) }}"
-          WORKSPACE: ${{ github.workspace }}
         run: |
           git lfs install
           toolchains_num=$(echo "$toolchains" | jq 'length')
@@ -83,7 +81,6 @@ jobs:
               mkdir -p "$toolchain_name"
               file="${url##*/}"
               wget -q -O "$file" "$url"
-
               case "$file" in
                 *.zip) unzip -q -d "$toolchain_name" "$file" ;;
                 *.tar.gz|*.tgz) tar xzf "$file" -C "$toolchain_name" ;;
@@ -98,15 +95,12 @@ jobs:
               git clone --recursive --depth=1 --branch "$branch" "$repo" "$toolchain_name"
             fi
 
-            # 确保 clang 与 ld.lld 可用
             clang_path="$WORKSPACE/$toolchain_name/bin/clang"
             lld_path="$WORKSPACE/$toolchain_name/bin/ld.lld"
             if [ ! -x "$clang_path" ] || [ ! -x "$lld_path" ]; then
               echo "❌ ERROR: clang or ld.lld missing in $toolchain_name/bin"
               exit 1
             fi
-
-            # 添加整个 bin 到 PATH
             echo "$WORKSPACE/$toolchain_name/bin" >> $GITHUB_PATH
           done
 
@@ -125,15 +119,18 @@ jobs:
           path: |
             ${{ env.OUT_DIR }}
             ${{ env.CCACHE_DIR }}
-          key: cache-${{ env.KERNEL_NAME }}-${{ steps.hash.outputs.HASH }}-${{ env.BUILD_DATE }}
+          key: cache-${{ matrix.CONFIG.kernelSource.name }}-${{ steps.hash.outputs.HASH }}-${{ env.BUILD_DATE }}
           restore-keys: |
-            cache-${{ env.KERNEL_NAME }}-${{ steps.hash.outputs.HASH }}-
-            cache-${{ env.KERNEL_NAME }}-
+            cache-${{ matrix.CONFIG.kernelSource.name }}-${{ steps.hash.outputs.HASH }}-
+            cache-${{ matrix.CONFIG.kernelSource.name }}-
 
       - name: 🧹 Clean old kernel
         run: |
-          KERNEL_DIR="${{ env.WORKSPACE }}/{{ matrix.CONFIG.kernelSource.name }}"
-          [ -d "$KERNEL_DIR" ] && rm -rf "$KERNEL_DIR"
+          KERNEL_DIR="${{ github.workspace }}/${{ matrix.CONFIG.kernelSource.name }}"
+          if [ -d "$KERNEL_DIR" ]; then
+            echo "Removing existing kernel directory: $KERNEL_DIR"
+            rm -rf "$KERNEL_DIR"
+          fi
 
       - name: 🌟 Clone kernel source
         run: |
@@ -144,7 +141,7 @@ jobs:
 
       - name: 🧹 Clean & init kernel config
         run: |
-          cd ${{ env.WORKSPACE }}/{{ matrix.CONFIG.kernelSource.name }}
+          cd ${{ github.workspace }}/${{ matrix.CONFIG.kernelSource.name }}
           make ARCH=arm64 mrproper
           make ARCH=arm64 O=${{ env.OUT_DIR }} ${{ matrix.CONFIG.kernelSource.defconfig }}
           sed -i 's/CONFIG_NR_CPUS=.*/CONFIG_NR_CPUS=8/' ${{ env.OUT_DIR }}/.config || echo "CONFIG_NR_CPUS=8" >> ${{ env.OUT_DIR }}/.config
@@ -159,7 +156,7 @@ jobs:
           CC=$(echo '${{ toJSON(matrix.CONFIG.params) }}' | jq -r ".CC")
           ARGS="-j$THREAD O=${{ env.OUT_DIR }} ARCH=$ARCH LLVM=1"
           if [ -n "$CC" ]; then
-            if [[ "$CC" == */* ]]; then CC="${{ env.WORKSPACE }}/$CC"; fi
+            if [[ "$CC" == */* ]]; then CC="${{ github.workspace }}/$CC"; fi
             if [ '${{ matrix.CONFIG.enableCcache }}' = "true" ]; then
               ARGS="$ARGS CC=\"ccache $CC\""
             else
@@ -171,7 +168,7 @@ jobs:
           echo "🤔 $ARGS"
 
       - name: 👍 Build kernel
-        working-directory: ${{ env.WORKSPACE }}/{{ matrix.CONFIG.kernelSource.name }}
+        working-directory: ${{ github.workspace }}/${{ matrix.CONFIG.kernelSource.name }}
         run: |
           export KBUILD_BUILD_HOST=dammer
           export KBUILD_BUILD_USER=dammer
@@ -192,12 +189,11 @@ jobs:
           sed -i 's/do.devicecheck=1/do.devicecheck=0/g' AnyKernel3/anykernel.sh
           cp -f ${{ env.OUT_DIR }}/arch/${{ steps.generate-args.outputs.ARCH }}/boot/* AnyKernel3/
           cd AnyKernel3
-          zip -q -r "${{ env.WORKSPACE }}/AnyKernel3-${{ matrix.CONFIG.kernelSource.name }}-${{ env.BUILD_DATE }}.zip" *
+          zip -q -r "${{ github.workspace }}/AnyKernel3-${{ matrix.CONFIG.kernelSource.name }}-${{ env.BUILD_DATE }}.zip" *
 
       - name: 💾 Upload AnyKernel3
         if: ${{ matrix.CONFIG.AnyKernel3.use == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: AnyKernel3-${{ matrix.CONFIG.kernelSource.name }}-${{ env.BUILD_DATE }}
-          path: ${{ env.WORKSPACE }}/AnyKernel3-${{ matrix.CONFIG.kernelSource.name }}-${{ env.BUILD_DATE }}.zip
-
+          path: ${{ github.workspace }}/AnyKernel3-${{ matrix.CONFIG.kernelSource.name }}-${{ env.BUILD_DATE }}.zip
