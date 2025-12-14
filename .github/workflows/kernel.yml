@@ -63,15 +63,20 @@ jobs:
       - name: 🧹 Clean old kernel
         run: |
           KERNEL_DIR="${{ env.WORKSPACE }}/${{ matrix.CONFIG.kernelSource.name }}"
-          echo "Deleting $KERNEL_DIR if exists"
-          [ -d "$KERNEL_DIR" ] && rm -rf "$KERNEL_DIR"
+          echo "Checking $KERNEL_DIR..."
+          if [ -d "$KERNEL_DIR" ]; then
+            echo "Deleting existing directory $KERNEL_DIR"
+            rm -rf "$KERNEL_DIR" || true
+          else
+            echo "Directory $KERNEL_DIR does not exist, skipping deletion"
+          fi
 
       - name: 🌟 Clone kernel source
         run: |
           git clone --recursive --depth=1 -j $(nproc) \
-          --branch ${{ matrix.CONFIG.kernelSource.branch }} \
-          ${{ matrix.CONFIG.kernelSource.repo }} \
-          ${{ matrix.CONFIG.kernelSource.name }}
+            --branch ${{ matrix.CONFIG.kernelSource.branch }} \
+            ${{ matrix.CONFIG.kernelSource.repo }} \
+            ${{ matrix.CONFIG.kernelSource.name }}
 
       - name: 🧹 Init kernel config
         run: |
@@ -89,19 +94,14 @@ jobs:
           ARCH=$(echo '${{ toJSON(matrix.CONFIG.params) }}' | jq -r ".ARCH")
 
           # 条件执行 LXC / KSU / Nethunter
+          BUILD_LXC=false
+          BUILD_KSU=false
+          BUILD_NETHUNTER=false
+
           case "${{ matrix.CONFIG.kernelSource.name }}" in
             *LXC*) BUILD_LXC=true ;;
-            *) BUILD_LXC=false ;;
-          esac
-
-          case "${{ matrix.CONFIG.kernelSource.name }}" in
             *KSU*) BUILD_KSU=true ;;
-            *) BUILD_KSU=false ;;
-          esac
-
-          case "${{ matrix.CONFIG.kernelSource.name }}" in
             *Nethunter*) BUILD_NETHUNTER=true ;;
-            *) BUILD_NETHUNTER=false ;;
           esac
 
           # GCC for KSU / Nethunter, Clang for others
@@ -162,4 +162,3 @@ jobs:
         with:
           name: AnyKernel3-${{ matrix.CONFIG.kernelSource.name }}-${{ env.BUILD_DATE }}
           path: ${{ env.WORKSPACE }}/AnyKernel3-${{ matrix.CONFIG.kernelSource.name }}-${{ env.BUILD_DATE }}.zip
-
