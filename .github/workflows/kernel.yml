@@ -153,13 +153,13 @@ jobs:
 
           echo "=== Applying olddefconfig ==="
           make ARCH=arm64 O=${{ env.OUT_DIR }} olddefconfig
-          - name: 💫 Get toolchains
-          env:
-          toolchains: "${{ toJSON(matrix.CONFIG.toolchains) }}"
-          run: |
-          git lfs install
-          toolchains_num="$(echo $toolchains | jq 'length')"
-          echo "🤔 There is $toolchains_num defined toolchains."
+      - name: 💫 Get toolchains
+        env:
+         toolchains: "${{ toJSON(matrix.CONFIG.toolchains) }}"
+        run: |
+         git lfs install
+         toolchains_num="$(echo $toolchains | jq 'length')"
+         echo "🤔 There is $toolchains_num defined toolchains."
           for ((i=0;i<toolchains_num;i++)); do
           toolchain=$(echo $toolchains | jq -r ".[$i]")
           toolchain_name=$(echo $toolchain | jq -r ".name")
