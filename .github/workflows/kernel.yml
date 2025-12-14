@@ -24,8 +24,9 @@ jobs:
       - name: 😆 Generate Matrix
         id: generate-matrix
         run: |
-          CONFIGS=$(jq -s '[.[][]]' Kernel/configs/*.config.json)
-          echo "CONFIGS=$CONFIGS" >> $GITHUB_OUTPUT
+          echo "CONFIGS<<EOF" >> $GITHUB_OUTPUT
+          jq -s '[.[][]]' Kernel/configs/*.config.json >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       # Set compile time.
       - name: ⏰ Set builddate
         id: generate-builddate
@@ -188,17 +189,20 @@ jobs:
           echo "${WORKSPACE}/$toolchain_name/$subPath" >> $GITHUB_PATH
           done
 
-             # ✅ 校验 clang 和 ld.lld
+             # 添加 binaryEnv 到 PATH 并校验 clang/ld.lld
+          jq -r ".binaryEnv[] | tostring" <<< "$toolchain" | while read -r subPath; do
+          echo "${WORKSPACE}/$toolchain_name/$subPath" >> $GITHUB_PATH
+          done
+
           clang_path=$(echo $toolchain | jq -r ".binaryEnv[0]")
           if [ ! -x "${WORKSPACE}/${toolchain_name}/${clang_path}/clang" ]; then
           echo "ERROR: clang missing"
-          exit 1
-          fi
+            exit 1
+           fi
           if [ ! -x "${WORKSPACE}/${toolchain_name}/${clang_path}/ld.lld" ]; then
           echo "ERROR: ld.lld missing"
           exit 1
           fi
-          done
 
               # ✅ 校验 clang 和 ld.lld
                   clang_path=$(echo $toolchain | jq -r ".binaryEnv[0]")  # 假设 binaryEnv[0] 是 clang 目录
@@ -236,10 +240,9 @@ jobs:
               args="$args CC=$CC"
             fi
           fi
-          args="$args LLVM=1
+          args="$args LLVM=1"
           echo "ARCH=$ARCH" >> $GITHUB_OUTPUT
           echo "ARGS=$args" >> $GITHUB_OUTPUT
-
           echo "🤔 $args"
 
       - name: 😋 Setup KernelSU
@@ -290,11 +293,10 @@ jobs:
           ADD_DEFCONFIG: ${{ env.WORKSPACE }}/Kernel/LXC/LXC_defconfig
         if: ${{ env.ENABLE_LXC == 'true' }}
         run: |
-          # Add configuration
-          for config in $(cat ${{ env.ADD_DEFCONFIG }}); do
-          echo $config >> ${{ env.DEFCONFIG }}
-           done
-
+         # Add configuration
+         for config in $(cat "${{ env.ADD_DEFCONFIG }}"); do
+         echo "$config" >> "${{ env.DEFCONFIG }}"
+          done
 
           # Apply patch
           if [ -f kernel/cgroup.c ]; then
