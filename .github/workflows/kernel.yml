@@ -156,7 +156,7 @@ jobs:
       - name: 💫 Get toolchains
         env:
          toolchains: "${{ toJSON(matrix.CONFIG.toolchains) }}"
-         run: |
+        run: |
           git lfs install
           toolchains_num="$(echo $toolchains | jq 'length')"
           echo "🤔 There is $toolchains_num defined toolchains."
