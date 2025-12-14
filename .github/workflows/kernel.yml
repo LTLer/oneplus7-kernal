@@ -169,17 +169,18 @@ jobs:
             toolchain_url=$(echo $toolchain | jq -r ".url")
             mkdir -p "$toolchain_name"
             filename="${toolchain_url##*/}"
+            echo "🤔 下载 $toolchain_name => ($toolchain_url)"
             wget -q -O "$filename" "$toolchain_url"
 
+            # 解压 tar/zip，保留原始目录结构
             case "$filename" in
                 *.zip) unzip -q -d "$toolchain_name" "$filename" ;;
-                *.tar.gz) tar xzf "$filename" -C "$toolchain_name" --strip-components=1 ;;
-                *.tar) tar xf "$filename" -C "$toolchain_name" --strip-components=1 ;;
+                *.tar.gz|*.tgz) tar xzf "$filename" -C "$toolchain_name" ;;
+                *.tar) tar xf "$filename" -C "$toolchain_name" ;;
                 *.rar) unrar x "$filename" "$toolchain_name" ;;
                 *) echo "unknown file type: $filename" ;;
             esac
             rm "$filename"
-            echo "🤔 Download $toolchain_name => ($toolchain_url)"
 
          else
             toolchain_repo=$(echo $toolchain | jq -r ".repo")
@@ -188,16 +189,20 @@ jobs:
             echo "🤔 Clone $toolchain_name => ($toolchain_repo)"
          fi
 
+         # 调试：打印解压后的目录结构
+         echo "🔍 $toolchain_name contents:"
+         ls -R "$toolchain_name"
+
          # 自动查找 clang 和 ld.lld
          clang_real_path=$(find "$toolchain_name" -type f -name clang | head -n 1)
          lld_real_path=$(find "$toolchain_name" -type f -name ld.lld | head -n 1)
 
          if [ -z "$clang_real_path" ] || [ ! -x "$clang_real_path" ]; then
-            echo "ERROR: clang missing in $toolchain_name"
+            echo "❌ ERROR: clang missing in $toolchain_name"
             exit 1
          fi
          if [ -z "$lld_real_path" ] || [ ! -x "$lld_real_path" ]; then
-            echo "ERROR: ld.lld missing in $toolchain_name"
+            echo "❌ ERROR: ld.lld missing in $toolchain_name"
             exit 1
          fi
 
@@ -205,14 +210,14 @@ jobs:
          clang_dir=$(dirname "$clang_real_path")
          echo "$clang_dir" >> $GITHUB_PATH
 
-         # 如果 binaryEnv 在 JSON 中还存在，仍可追加
+         # 如果 JSON 中存在 binaryEnv，也加入 PATH
          jq -r ".binaryEnv[]? | tostring" <<< "$toolchain" | while read -r subPath; do
             if [ -d "${WORKSPACE}/$toolchain_name/$subPath" ]; then
                 echo "${WORKSPACE}/$toolchain_name/$subPath" >> $GITHUB_PATH
             fi
          done
 
-         echo "✅ Toolchain $toolchain_name ready. clang at $clang_real_path"
+         echo "✅ Toolchain $toolchain_name ready. clang at $clang_real_path, ld.lld at $lld_real_path"
          done
 
       - name: 😎 Set build args
