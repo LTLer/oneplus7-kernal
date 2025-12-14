@@ -54,16 +54,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             curl git wget unzip zip tar rar python3 python3-dev build-essential bc \
-            gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi clang lld make \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu gcc-arm-linux-gnueabi clang lld make \
             ccache libssl-dev libncurses-dev device-tree-compiler pngcrush schedtool \
             dpkg-dev liblz4-tool optipng maven lib32z1 libgl1-mesa-dev \
             bison gperf zlib1g-dev automake flex tree libxml2-utils squashfs-tools lzop \
             pwgen libc6-dev-i386
 
+      - name: 🧪 Verify cross compiler
+        run: |
+          echo "PATH=$PATH"
+          which gcc-aarch64-linux-gnu
+          gcc-aarch64-linux-gnu --version
+          ccache --version
+
       - name: 🧹 Clean old kernel
         run: |
           KERNEL_DIR="${{ env.WORKSPACE }}/${{ matrix.CONFIG.kernelSource.name }}"
-          echo "Checking $KERNEL_DIR..."
           if [ -d "$KERNEL_DIR" ]; then
             echo "Deleting existing directory $KERNEL_DIR"
             rm -rf "$KERNEL_DIR" || true
@@ -93,7 +99,6 @@ jobs:
           THREAD=$(nproc --all)
           ARCH=$(echo '${{ toJSON(matrix.CONFIG.params) }}' | jq -r ".ARCH")
 
-          # 条件执行 LXC / KSU / Nethunter
           BUILD_LXC=false
           BUILD_KSU=false
           BUILD_NETHUNTER=false
@@ -104,9 +109,10 @@ jobs:
             *Nethunter*) BUILD_NETHUNTER=true ;;
           esac
 
-          # GCC for KSU / Nethunter, Clang for others
+          # 设置交叉编译器路径
           if [ "$BUILD_KSU" = true ] || [ "$BUILD_NETHUNTER" = true ]; then
               CC=gcc-aarch64-linux-gnu
+              export PATH="/usr/bin:$PATH"
               LLVM=0
           else
               CC=$(echo '${{ toJSON(matrix.CONFIG.params) }}' | jq -r ".CC")
@@ -117,6 +123,7 @@ jobs:
           if [ -n "$CC" ]; then
             if [[ "$CC" == */* ]]; then CC="${{ env.WORKSPACE }}/$CC"; fi
             if [ '${{ matrix.CONFIG.enableCcache }}' = "true" ]; then
+              echo "Using ccache with $CC"
               ARGS="$ARGS CC=\"ccache $CC\""
             else
               ARGS="$ARGS CC=$CC"
