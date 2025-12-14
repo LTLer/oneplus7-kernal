@@ -156,16 +156,16 @@ jobs:
       - name: 💫 Get toolchains
         env:
          toolchains: "${{ toJSON(matrix.CONFIG.toolchains) }}"
-        run: |
-         git lfs install
-         toolchains_num="$(echo $toolchains | jq 'length')"
-         echo "🤔 There is $toolchains_num defined toolchains."
+         run: |
+          git lfs install
+          toolchains_num="$(echo $toolchains | jq 'length')"
+          echo "🤔 There is $toolchains_num defined toolchains."
 
-         for ((i=0;i<toolchains_num;i++)); do
-         toolchain=$(echo $toolchains | jq -r ".[$i]")
-         toolchain_name=$(echo $toolchain | jq -r ".name")
+          for ((i=0;i<toolchains_num;i++)); do
+          toolchain=$(echo $toolchains | jq -r ".[$i]")
+          toolchain_name=$(echo $toolchain | jq -r ".name")
 
-         if echo $toolchain | jq -e 'has("url")' > /dev/null; then
+          if echo $toolchain | jq -e 'has("url")' > /dev/null; then
             toolchain_url=$(echo $toolchain | jq -r ".url")
             mkdir -p "$toolchain_name"
             filename="${toolchain_url##*/}"
@@ -182,43 +182,43 @@ jobs:
             esac
             rm "$filename"
 
-         else
+            else
             toolchain_repo=$(echo $toolchain | jq -r ".repo")
             toolchain_branch=$(echo $toolchain | jq -r ".branch")
             git clone --recursive --depth=1 -j $(nproc) --branch "$toolchain_branch" "$toolchain_repo" "$toolchain_name"
             echo "🤔 Clone $toolchain_name => ($toolchain_repo)"
-         fi
+            fi
 
-         # 调试：打印解压后的目录结构
-         echo "🔍 $toolchain_name contents:"
-         ls -R "$toolchain_name"
+            # 调试：打印解压后的目录结构
+            echo "🔍 $toolchain_name contents:"
+            ls -R "$toolchain_name"
 
-         # 自动查找 clang 和 ld.lld
-         clang_real_path=$(find "$toolchain_name" -type f -name clang | head -n 1)
-         lld_real_path=$(find "$toolchain_name" -type f -name ld.lld | head -n 1)
+            # 直接使用 bin/ 目录
+            clang_real_path="$toolchain_name/bin/clang"
+            lld_real_path="$toolchain_name/bin/ld.lld"
 
-         if [ -z "$clang_real_path" ] || [ ! -x "$clang_real_path" ]; then
-            echo "❌ ERROR: clang missing in $toolchain_name"
+            if [ ! -x "$clang_real_path" ]; then
+            echo "❌ ERROR: clang missing at $clang_real_path"
             exit 1
-         fi
-         if [ -z "$lld_real_path" ] || [ ! -x "$lld_real_path" ]; then
-            echo "❌ ERROR: ld.lld missing in $toolchain_name"
+            fi
+
+            if [ ! -x "$lld_real_path" ]; then
+            echo "❌ ERROR: ld.lld missing at $lld_real_path"
             exit 1
-         fi
+            fi
 
-         # 将 clang 和 ld.lld 所在目录加入 PATH
-         clang_dir=$(dirname "$clang_real_path")
-         echo "$clang_dir" >> $GITHUB_PATH
+            # 添加到 PATH
+           echo "$(dirname "$clang_real_path")" >> $GITHUB_PATH
 
-         # 如果 JSON 中存在 binaryEnv，也加入 PATH
-         jq -r ".binaryEnv[]? | tostring" <<< "$toolchain" | while read -r subPath; do
+           # 如果 JSON 中存在 binaryEnv，也加入 PATH
+           jq -r ".binaryEnv[]? | tostring" <<< "$toolchain" | while read -r subPath; do
             if [ -d "${WORKSPACE}/$toolchain_name/$subPath" ]; then
                 echo "${WORKSPACE}/$toolchain_name/$subPath" >> $GITHUB_PATH
             fi
-         done
+            done
 
-         echo "✅ Toolchain $toolchain_name ready. clang at $clang_real_path, ld.lld at $lld_real_path"
-         done
+            echo "✅ Toolchain $toolchain_name ready. clang at $clang_real_path, ld.lld at $lld_real_path"
+            done
 
       - name: 😎 Set build args
         id: generate-args
