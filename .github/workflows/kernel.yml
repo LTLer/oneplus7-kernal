@@ -62,7 +62,8 @@ jobs:
 
       - name: 🧹 Clean old kernel
         run: |
-          KERNEL_DIR="${{ env.WORKSPACE }}/{{ matrix.CONFIG.kernelSource.name }}"
+          KERNEL_DIR="${{ env.WORKSPACE }}/${{ matrix.CONFIG.kernelSource.name }}"
+          echo "Deleting $KERNEL_DIR if exists"
           [ -d "$KERNEL_DIR" ] && rm -rf "$KERNEL_DIR"
 
       - name: 🌟 Clone kernel source
@@ -74,12 +75,12 @@ jobs:
 
       - name: 🧹 Init kernel config
         run: |
-          cd ${{ env.WORKSPACE }}/{{ matrix.CONFIG.kernelSource.name }}
+          cd "${{ env.WORKSPACE }}/${{ matrix.CONFIG.kernelSource.name }}"
           make ARCH=arm64 mrproper
-          make ARCH=arm64 O=${{ env.OUT_DIR }} ${{ matrix.CONFIG.kernelSource.defconfig }}
-          sed -i 's/CONFIG_NR_CPUS=.*/CONFIG_NR_CPUS=8/' ${{ env.OUT_DIR }}/.config || echo "CONFIG_NR_CPUS=8" >> ${{ env.OUT_DIR }}/.config
-          sed -i 's/# CONFIG_SMP is not set/CONFIG_SMP=y/' ${{ env.OUT_DIR }}/.config || true
-          make ARCH=arm64 O=${{ env.OUT_DIR }} olddefconfig
+          make ARCH=arm64 O="${{ env.OUT_DIR }}" ${{ matrix.CONFIG.kernelSource.defconfig }}
+          sed -i 's/CONFIG_NR_CPUS=.*/CONFIG_NR_CPUS=8/' "${{ env.OUT_DIR }}/.config" || echo "CONFIG_NR_CPUS=8" >> "${{ env.OUT_DIR }}/.config"
+          sed -i 's/# CONFIG_SMP is not set/CONFIG_SMP=y/' "${{ env.OUT_DIR }}/.config" || true
+          make ARCH=arm64 O="${{ env.OUT_DIR }}" olddefconfig
 
       - name: 😎 Set build args
         id: generate-args
@@ -87,8 +88,24 @@ jobs:
           THREAD=$(nproc --all)
           ARCH=$(echo '${{ toJSON(matrix.CONFIG.params) }}' | jq -r ".ARCH")
 
+          # 条件执行 LXC / KSU / Nethunter
+          case "${{ matrix.CONFIG.kernelSource.name }}" in
+            *LXC*) BUILD_LXC=true ;;
+            *) BUILD_LXC=false ;;
+          esac
+
+          case "${{ matrix.CONFIG.kernelSource.name }}" in
+            *KSU*) BUILD_KSU=true ;;
+            *) BUILD_KSU=false ;;
+          esac
+
+          case "${{ matrix.CONFIG.kernelSource.name }}" in
+            *Nethunter*) BUILD_NETHUNTER=true ;;
+            *) BUILD_NETHUNTER=false ;;
+          esac
+
           # GCC for KSU / Nethunter, Clang for others
-          if [[ "${{ matrix.CONFIG.kernelSource.name }}" =~ "KSU"|"Nethunter" ]]; then
+          if [ "$BUILD_KSU" = true ] || [ "$BUILD_NETHUNTER" = true ]; then
               CC=gcc-aarch64-linux-gnu
               LLVM=0
           else
@@ -108,11 +125,14 @@ jobs:
 
           echo "ARCH=$ARCH" >> $GITHUB_OUTPUT
           echo "ARGS=$ARGS" >> $GITHUB_OUTPUT
+          echo "BUILD_LXC=$BUILD_LXC" >> $GITHUB_OUTPUT
+          echo "BUILD_KSU=$BUILD_KSU" >> $GITHUB_OUTPUT
+          echo "BUILD_NETHUNTER=$BUILD_NETHUNTER" >> $GITHUB_OUTPUT
           echo "🤔 $ARGS"
 
       - name: 👍 Build kernel
         if: ${{ matrix.CONFIG.buildKernel != 'false' }}
-        working-directory: ${{ env.WORKSPACE }}/{{ matrix.CONFIG.kernelSource.name }}
+        working-directory: ${{ env.WORKSPACE }}/${{ matrix.CONFIG.kernelSource.name }}
         run: |
           export KBUILD_BUILD_HOST=dammer
           export KBUILD_BUILD_USER=dammer
