@@ -24,15 +24,12 @@ jobs:
       - name: 😆 Generate Matrix
         id: generate-matrix
         run: |
-          echo "CONFIGS<<EOF" >> $GITHUB_OUTPUT
-          jq -s '[.[][]]' Kernel/configs/*.config.json >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
+          CONFIGS=$(jq -s '[.[][]]' Kernel/configs/*.config.json)
+          echo "CONFIGS=$CONFIGS" >> $GITHUB_OUTPUT
       # Set compile time.
       - name: ⏰ Set builddate
         id: generate-builddate
         run: echo "BUILDDATE=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
-
   Build-Kernel:
     name: "🐎 Build kernel"
     runs-on: ubuntu-latest
@@ -162,83 +159,57 @@ jobs:
           git lfs install
           toolchains_num="$(echo $toolchains | jq 'length')"
           echo "🤔 There is $toolchains_num defined toolchains."
-
           for ((i=0;i<toolchains_num;i++)); do
-            toolchain=$(echo $toolchains | jq -r ".[$i]")
-
-            toolchain_name=$(echo $toolchain | jq -r ".name")
-            
-            # From archive
-            if echo $toolchain | jq -e 'has("url")' > /dev/null; then
-              # If from archive
-              toolchain_url=$(echo $toolchain | jq -r ".url")
-              mkdir -p $toolchain_name
-
-              # Download archive
-              wget "$toolchain_url"
-
-              # Get filename
-              filename="${toolchain_url##*/}"
-              case "$filename" in
-                *.zip)
-                  unzip -d $toolchain_name "$filename"
-                  ;;
-                *.tar)
-                  tar xvf "$filename" -C $toolchain_name
-                  ;;
-                *.tar.gz)
-                  tar zxvf "$filename" -C $toolchain_name
-                  ;;
-                *.rar)
-                  unrar x "$filename" $toolchain_name
-                  ;;
-                *)
-                  echo "unknown file type: $filename"
-                  ;;
-              esac
-              # Delete file to avoid duplicate name conflicts 
-              rm $filename
-
-              echo "🤔 Download $toolchain_name => ($toolchain_url)"
-            else
-              # If from git
-              toolchain_repo=$(echo $toolchain | jq -r ".repo")
-              toolchain_branch=$(echo $toolchain | jq -r ".branch")
-              git clone --recursive --depth=1 -j $(nproc) --branch $toolchain_branch $toolchain_repo $toolchain_name
-
-              echo "🤔 Clone $toolchain_name => ($toolchain_repo)"
-            fi
-
-            jq -r ".binaryEnv[] | tostring" <<< "$toolchain" | while read -r subPath; do
-              echo "${{ env.WORKSPACE }}/$toolchain_name/$subPath" >> $GITHUB_PATH
-            done
-          done
-            for ((i=0;i<toolchains_num;i++)); do
           toolchain=$(echo $toolchains | jq -r ".[$i]")
           toolchain_name=$(echo $toolchain | jq -r ".name")
+          if echo $toolchain | jq -e 'has("url")' > /dev/null; then
+          toolchain_url=$(echo $toolchain | jq -r ".url")
+          mkdir -p $toolchain_name
+          filename="${toolchain_url##*/}"
+          wget "$toolchain_url"
+          case "$filename" in
+          *.zip) unzip -d $toolchain_name "$filename" ;;
+          *.tar) tar xvf "$filename" -C $toolchain_name ;;
+          *.tar.gz) tar zxvf "$filename" -C $toolchain_name ;;
+          *.rar) unrar x "$filename" $toolchain_name ;;
+          *) echo "unknown file type: $filename" ;;
+          esac
+          rm $filename
+          echo "🤔 Download $toolchain_name => ($toolchain_url)"
+          else
+          toolchain_repo=$(echo $toolchain | jq -r ".repo")
+          toolchain_branch=$(echo $toolchain | jq -r ".branch")
+          git clone --recursive --depth=1 -j $(nproc) --branch $toolchain_branch $toolchain_repo $toolchain_name
+          echo "🤔 Clone $toolchain_name => ($toolchain_repo)"
+           fi
 
-                if echo $toolchain | jq -e 'has("url")' > /dev/null; then
-              toolchain_url=$(echo $toolchain | jq -r ".url")
-             mkdir -p $toolchain_name
-             wget "$toolchain_url"
-              filename="${toolchain_url##*/}"
-              tar zxvf "$filename" -C $toolchain_name
-               rm $filename
-                fi
+              # 添加 binaryEnv 到 PATH
+          jq -r ".binaryEnv[] | tostring" <<< "$toolchain" | while read -r subPath; do
+          echo "${WORKSPACE}/$toolchain_name/$subPath" >> $GITHUB_PATH
+          done
 
-                    jq -r ".binaryEnv[] | tostring" <<< "$toolchain" | while read -r subPath; do
-                   echo "${WORKSPACE}/$toolchain_name/$subPath" >> $GITHUB_PATH
-                    done
+             # ✅ 校验 clang 和 ld.lld
+          clang_path=$(echo $toolchain | jq -r ".binaryEnv[0]")
+          if [ ! -x "${WORKSPACE}/${toolchain_name}/${clang_path}/clang" ]; then
+          echo "ERROR: clang missing"
+          exit 1
+          fi
+          if [ ! -x "${WORKSPACE}/${toolchain_name}/${clang_path}/ld.lld" ]; then
+          echo "ERROR: ld.lld missing"
+          exit 1
+          fi
+          done
 
               # ✅ 校验 clang 和 ld.lld
-                         if [ ! -x "${WORKSPACE}/${toolchain_name}/clang-r547379/bin/clang" ]; then
-               echo "ERROR: clang missing"
-                    exit 1
-                  fi
-                  if [ ! -x "${WORKSPACE}/${toolchain_name}/clang-r547379/bin/ld.lld" ]; then
-                 echo "ERROR: ld.lld missing"
-                     exit 1
-                      fi
+                  clang_path=$(echo $toolchain | jq -r ".binaryEnv[0]")  # 假设 binaryEnv[0] 是 clang 目录
+                 if [ ! -x "${WORKSPACE}/${toolchain_name}/${clang_path}/clang" ]; then
+                 echo "ERROR: clang missing"
+                 exit 1
+                    fi
+                  if [ ! -x "${WORKSPACE}/${toolchain_name}/${clang_path}/ld.lld" ]; then
+                      echo "ERROR: ld.lld missing"
+                   exit 1
+                     fi
                      done
 
       - name: 😎 Set build args
@@ -320,10 +291,10 @@ jobs:
         if: ${{ env.ENABLE_LXC == 'true' }}
         run: |
           # Add configuration
-          for config in $(cat ${{ env.ADD_DEFCONFIG }})
-          do
-            echo $i >> ${{ env.DEFCONFIG }}
-          done
+          for config in $(cat ${{ env.ADD_DEFCONFIG }}); do
+          echo $config >> ${{ env.DEFCONFIG }}
+           done
+
 
           # Apply patch
           if [ -f kernel/cgroup.c ]; then
